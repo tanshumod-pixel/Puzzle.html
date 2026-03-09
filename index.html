@@ -14,7 +14,6 @@ margin:0;
 font-family:Arial;
 text-align:center;
 color:white;
-overflow:hidden;
 background:linear-gradient(-45deg,#ff9a9e,#fecfef,#fcb69f,#ffdde1);
 background-size:400% 400%;
 animation:bgmove 10s ease infinite;
@@ -30,7 +29,7 @@ animation:bgmove 10s ease infinite;
 padding-top:30px;
 }
 
-/* fake camera */
+/* camera */
 
 .camera{
 width:260px;
@@ -61,7 +60,7 @@ font-size:70px;
 margin-top:40px;
 }
 
-/* progress bar */
+/* progress */
 
 .progress{
 width:300px;
@@ -114,7 +113,7 @@ color:#ff4f9c;
 cursor:pointer;
 }
 
-/* final message */
+/* final */
 
 #final{
 display:none;
@@ -164,6 +163,8 @@ animation:float 6s linear infinite;
 
 <script>
 
+document.addEventListener("DOMContentLoaded", function(){
+
 let bar=document.getElementById("bar")
 let title=document.getElementById("title")
 let puzzle=document.getElementById("puzzle")
@@ -173,7 +174,6 @@ let camera=document.getElementById("camera")
 
 let progress=0
 let selected=null
-let correctPositions=[]
 
 function startScan(){
 
@@ -188,6 +188,7 @@ if(progress==70) title.innerText="Analyzing smile..."
 if(progress>=100){
 
 clearInterval(interval)
+
 title.innerText="Smile Detected 🙂"
 
 setTimeout(startPuzzle,1500)
@@ -217,23 +218,22 @@ let img="image/photo.jpg"
 
 let pieces=[]
 
-for(let y=0;y<3;y++){
-for(let x=0;x<3;x++){
+for(let i=0;i<9;i++){
+
+let x=i%3
+let y=Math.floor(i/3)
 
 let div=document.createElement("div")
 
 div.className="piece"
 
-div.dataset.correct=`${x}-${y}`
+div.dataset.correct=i
 
 div.style.backgroundImage=`url(${img})`
 div.style.backgroundPosition=`-${x*100}px -${y*100}px`
 
-correctPositions.push(`-${x*100}px -${y*100}px`)
-
 pieces.push(div)
 
-}
 }
 
 pieces.sort(()=>Math.random()-0.5)
@@ -256,6 +256,8 @@ swapPieces(selected,piece)
 selected.classList.remove("selected")
 selected=null
 
+checkCompletion()
+
 }
 
 }
@@ -270,41 +272,27 @@ let temp=a.style.backgroundPosition
 a.style.backgroundPosition=b.style.backgroundPosition
 b.style.backgroundPosition=temp
 
-}
-
-continueBtn.onclick=function(){
-
-puzzle.style.display="none"
-continueBtn.style.display="none"
-
-showCelebration()
+let t=a.dataset.correct
+a.dataset.correct=b.dataset.correct
+b.dataset.correct=t
 
 }
 
 function checkCompletion(){
 
 let pieces=document.querySelectorAll(".piece")
+
 let correct=true
 
 pieces.forEach((piece,index)=>{
 
-if(piece.style.backgroundPosition!==correctPositions[index]){
+if(piece.dataset.correct!=index){
 correct=false
 }
 
 })
 
-return correct
-
-}
-
-/* check every second */
-
-setInterval(()=>{
-
-if(puzzle.style.display==="grid"){
-
-if(checkCompletion()){
+if(correct){
 
 continueBtn.style.display="inline-block"
 title.innerText="Puzzle Completed 🎉"
@@ -317,7 +305,14 @@ continueBtn.style.display="none"
 
 }
 
-},800)
+continueBtn.onclick=function(){
+
+puzzle.style.display="none"
+continueBtn.style.display="none"
+
+showCelebration()
+
+}
 
 function showCelebration(){
 
@@ -361,6 +356,8 @@ setTimeout(()=>heart.remove(),6000)
 }
 
 startScan()
+
+})
 
 </script>
 
