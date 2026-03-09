@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Smile Detection Challenge</title>
+<title>Smile Detection System</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -17,7 +17,7 @@ color:white;
 overflow:hidden;
 background:linear-gradient(-45deg,#ff9a9e,#fecfef,#fcb69f,#ffdde1);
 background-size:400% 400%;
-animation:bgmove 12s ease infinite;
+animation:bgmove 10s ease infinite;
 }
 
 @keyframes bgmove{
@@ -27,15 +27,48 @@ animation:bgmove 12s ease infinite;
 }
 
 .container{
-margin-top:70px;
+padding-top:30px;
 }
 
+/* fake camera */
+
+.camera{
+width:260px;
+height:180px;
+background:black;
+margin:auto;
+border-radius:15px;
+position:relative;
+overflow:hidden;
+box-shadow:0 0 20px rgba(0,0,0,0.5);
+}
+
+.scan{
+position:absolute;
+width:100%;
+height:3px;
+background:#00ffc3;
+animation:scanmove 2s linear infinite;
+}
+
+@keyframes scanmove{
+0%{top:0}
+100%{top:100%}
+}
+
+.face{
+font-size:70px;
+margin-top:40px;
+}
+
+/* progress bar */
+
 .progress{
-width:320px;
+width:300px;
 height:14px;
 background:rgba(255,255,255,0.3);
+margin:20px auto;
 border-radius:20px;
-margin:25px auto;
 overflow:hidden;
 }
 
@@ -43,12 +76,13 @@ overflow:hidden;
 height:100%;
 width:0%;
 background:white;
-border-radius:20px;
 }
+
+/* puzzle */
 
 #puzzle{
 width:300px;
-margin:40px auto;
+margin:30px auto;
 display:none;
 grid-template-columns:repeat(3,1fr);
 gap:2px;
@@ -59,14 +93,36 @@ width:100px;
 height:100px;
 background-size:300px 300px;
 border-radius:6px;
-cursor:grab;
+cursor:pointer;
 }
+
+.selected{
+outline:3px solid white;
+}
+
+/* button */
+
+#continueBtn{
+display:none;
+margin-top:20px;
+padding:12px 25px;
+font-size:18px;
+border:none;
+border-radius:25px;
+background:white;
+color:#ff4f9c;
+cursor:pointer;
+}
+
+/* final message */
 
 #final{
 display:none;
-font-size:26px;
+font-size:24px;
 margin-top:40px;
 }
+
+/* hearts */
 
 .heart{
 position:absolute;
@@ -87,13 +143,20 @@ animation:float 6s linear infinite;
 
 <div class="container">
 
-<h2 id="title">Initializing Smile Detection System...</h2>
+<h2 id="title">Smile Detection Camera</h2>
+
+<div class="camera" id="camera">
+<div class="scan"></div>
+<div class="face">🙂</div>
+</div>
 
 <div class="progress">
 <div class="bar" id="bar"></div>
 </div>
 
 <div id="puzzle"></div>
+
+<button id="continueBtn">Puzzle Completed ✔ Continue</button>
 
 <div id="final"></div>
 
@@ -104,40 +167,44 @@ animation:float 6s linear infinite;
 let bar=document.getElementById("bar")
 let title=document.getElementById("title")
 let puzzle=document.getElementById("puzzle")
+let continueBtn=document.getElementById("continueBtn")
 let final=document.getElementById("final")
+let camera=document.getElementById("camera")
 
 let progress=0
-let dragged=null
+let selected=null
+let correctPositions=[]
 
-function startLoading(){
+function startScan(){
 
 let interval=setInterval(()=>{
 
 progress++
 bar.style.width=progress+"%"
 
-if(progress==40){
-title.innerText="Scanning happiness levels..."
-}
-
-if(progress==75){
-title.innerText="Smile detected 🙂"
-}
+if(progress==40) title.innerText="Scanning face..."
+if(progress==70) title.innerText="Analyzing smile..."
 
 if(progress>=100){
+
 clearInterval(interval)
-startPuzzle()
+title.innerText="Smile Detected 🙂"
+
+setTimeout(startPuzzle,1500)
+
 }
 
-},60)
+},50)
 
 }
 
 function startPuzzle(){
 
+camera.style.display="none"
+document.querySelector(".progress").style.display="none"
+
 title.innerText="Complete the Puzzle"
 
-document.querySelector(".progress").style.display="none"
 puzzle.style.display="grid"
 
 createPuzzle()
@@ -148,7 +215,7 @@ function createPuzzle(){
 
 let img="image/photo.jpg"
 
-let positions=[]
+let pieces=[]
 
 for(let y=0;y<3;y++){
 for(let x=0;x<3;x++){
@@ -156,87 +223,107 @@ for(let x=0;x<3;x++){
 let div=document.createElement("div")
 
 div.className="piece"
-div.draggable=true
 
 div.dataset.correct=`${x}-${y}`
 
 div.style.backgroundImage=`url(${img})`
 div.style.backgroundPosition=`-${x*100}px -${y*100}px`
 
-positions.push(div)
+correctPositions.push(`-${x*100}px -${y*100}px`)
+
+pieces.push(div)
 
 }
 }
 
-positions.sort(()=>Math.random()-0.5)
+pieces.sort(()=>Math.random()-0.5)
 
-positions.forEach(p=>puzzle.appendChild(p))
+pieces.forEach(p=>puzzle.appendChild(p))
 
-let pieces=document.querySelectorAll(".piece")
+document.querySelectorAll(".piece").forEach(piece=>{
 
-pieces.forEach(piece=>{
+piece.onclick=()=>{
 
-piece.addEventListener("dragstart",()=>{
+if(!selected){
 
-dragged=piece
+selected=piece
+piece.classList.add("selected")
 
-})
+}else{
 
-piece.addEventListener("dragover",(e)=>{
+swapPieces(selected,piece)
 
-e.preventDefault()
+selected.classList.remove("selected")
+selected=null
 
-})
+}
 
-piece.addEventListener("drop",()=>{
-
-let temp=dragged.style.backgroundPosition
-dragged.style.backgroundPosition=piece.style.backgroundPosition
-piece.style.backgroundPosition=temp
-
-checkCompletion()
+}
 
 })
 
-})
+}
+
+function swapPieces(a,b){
+
+let temp=a.style.backgroundPosition
+a.style.backgroundPosition=b.style.backgroundPosition
+b.style.backgroundPosition=temp
+
+}
+
+continueBtn.onclick=function(){
+
+puzzle.style.display="none"
+continueBtn.style.display="none"
+
+showCelebration()
 
 }
 
 function checkCompletion(){
 
 let pieces=document.querySelectorAll(".piece")
-let correct=0
+let correct=true
 
-pieces.forEach(piece=>{
+pieces.forEach((piece,index)=>{
 
-let pos=piece.style.backgroundPosition
-let correctPos=piece.dataset.correct.split("-")
-
-let x=-correctPos[0]*100+"px"
-let y=-correctPos[1]*100+"px"
-
-if(pos===`${x} ${y}`){
-correct++
+if(piece.style.backgroundPosition!==correctPositions[index]){
+correct=false
 }
 
 })
 
-if(correct===9){
+return correct
 
-puzzle.style.display="none"
-showCelebration()
+}
+
+/* check every second */
+
+setInterval(()=>{
+
+if(puzzle.style.display==="grid"){
+
+if(checkCompletion()){
+
+continueBtn.style.display="inline-block"
+title.innerText="Puzzle Completed 🎉"
+
+}else{
+
+continueBtn.style.display="none"
 
 }
 
 }
+
+},800)
 
 function showCelebration(){
 
-title.innerText="Puzzle Completed 🎉"
-
 final.style.display="block"
 
-final.innerHTML="Keep smiling Khushi, the world looks better when you do."
+final.innerHTML="🎉 System Update Complete!<br><br>Keep smiling Khushi, the world looks better when you do."
 
 startFireworks()
 
@@ -251,13 +338,10 @@ setInterval(()=>{
 confetti({
 particleCount:200,
 spread:120,
-origin:{
-x:Math.random(),
-y:Math.random()*0.6
-}
+origin:{x:Math.random(),y:Math.random()*0.6}
 })
 
-},800)
+},700)
 
 }
 
@@ -276,7 +360,7 @@ setTimeout(()=>heart.remove(),6000)
 
 }
 
-startLoading()
+startScan()
 
 </script>
 
