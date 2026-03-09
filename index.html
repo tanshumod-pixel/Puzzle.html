@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smile Detection Challenge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+text-align:center;
+color:white;
+overflow:hidden;
+background:linear-gradient(-45deg,#ff9a9e,#fecfef,#fcb69f,#ffdde1);
+background-size:400% 400%;
+animation:bgmove 12s ease infinite;
+}
+
+@keyframes bgmove{
+0%{background-position:0% 50%;}
+50%{background-position:100% 50%;}
+100%{background-position:0% 50%;}
+}
+
+.container{
+margin-top:70px;
+}
+
+.progress{
+width:320px;
+height:14px;
+background:rgba(255,255,255,0.3);
+border-radius:20px;
+margin:25px auto;
+overflow:hidden;
+}
+
+.bar{
+height:100%;
+width:0%;
+background:white;
+border-radius:20px;
+}
+
+#puzzle{
+width:300px;
+margin:40px auto;
+display:none;
+grid-template-columns:repeat(3,1fr);
+gap:2px;
+}
+
+.piece{
+width:100px;
+height:100px;
+background-size:300px 300px;
+border-radius:6px;
+cursor:grab;
+}
+
+#final{
+display:none;
+font-size:26px;
+margin-top:40px;
+}
+
+.heart{
+position:absolute;
+font-size:26px;
+animation:float 6s linear infinite;
+}
+
+@keyframes float{
+0%{transform:translateY(100vh);opacity:0;}
+50%{opacity:1;}
+100%{transform:translateY(-10vh);opacity:0;}
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2 id="title">Initializing Smile Detection System...</h2>
+
+<div class="progress">
+<div class="bar" id="bar"></div>
+</div>
+
+<div id="puzzle"></div>
+
+<div id="final"></div>
+
+</div>
+
+<script>
+
+let bar=document.getElementById("bar")
+let title=document.getElementById("title")
+let puzzle=document.getElementById("puzzle")
+let final=document.getElementById("final")
+
+let progress=0
+let dragged=null
+
+function startLoading(){
+
+let interval=setInterval(()=>{
+
+progress++
+bar.style.width=progress+"%"
+
+if(progress==40){
+title.innerText="Scanning happiness levels..."
+}
+
+if(progress==75){
+title.innerText="Smile detected 🙂"
+}
+
+if(progress>=100){
+clearInterval(interval)
+startPuzzle()
+}
+
+},60)
+
+}
+
+function startPuzzle(){
+
+title.innerText="Complete the Puzzle"
+
+document.querySelector(".progress").style.display="none"
+puzzle.style.display="grid"
+
+createPuzzle()
+
+}
+
+function createPuzzle(){
+
+let img="image/photo.jpg"
+
+let positions=[]
+
+for(let y=0;y<3;y++){
+for(let x=0;x<3;x++){
+
+let div=document.createElement("div")
+
+div.className="piece"
+div.draggable=true
+
+div.dataset.correct=`${x}-${y}`
+
+div.style.backgroundImage=`url(${img})`
+div.style.backgroundPosition=`-${x*100}px -${y*100}px`
+
+positions.push(div)
+
+}
+}
+
+positions.sort(()=>Math.random()-0.5)
+
+positions.forEach(p=>puzzle.appendChild(p))
+
+let pieces=document.querySelectorAll(".piece")
+
+pieces.forEach(piece=>{
+
+piece.addEventListener("dragstart",()=>{
+
+dragged=piece
+
+})
+
+piece.addEventListener("dragover",(e)=>{
+
+e.preventDefault()
+
+})
+
+piece.addEventListener("drop",()=>{
+
+let temp=dragged.style.backgroundPosition
+dragged.style.backgroundPosition=piece.style.backgroundPosition
+piece.style.backgroundPosition=temp
+
+checkCompletion()
+
+})
+
+})
+
+}
+
+function checkCompletion(){
+
+let pieces=document.querySelectorAll(".piece")
+let correct=0
+
+pieces.forEach(piece=>{
+
+let pos=piece.style.backgroundPosition
+let correctPos=piece.dataset.correct.split("-")
+
+let x=-correctPos[0]*100+"px"
+let y=-correctPos[1]*100+"px"
+
+if(pos===`${x} ${y}`){
+correct++
+}
+
+})
+
+if(correct===9){
+
+puzzle.style.display="none"
+showCelebration()
+
+}
+
+}
+
+function showCelebration(){
+
+title.innerText="Puzzle Completed 🎉"
+
+final.style.display="block"
+
+final.innerHTML="Keep smiling Khushi, the world looks better when you do."
+
+startFireworks()
+
+setInterval(createHeart,400)
+
+}
+
+function startFireworks(){
+
+setInterval(()=>{
+
+confetti({
+particleCount:200,
+spread:120,
+origin:{
+x:Math.random(),
+y:Math.random()*0.6
+}
+})
+
+},800)
+
+}
+
+function createHeart(){
+
+let heart=document.createElement("div")
+
+heart.className="heart"
+heart.innerHTML="💗"
+
+heart.style.left=Math.random()*100+"vw"
+
+document.body.appendChild(heart)
+
+setTimeout(()=>heart.remove(),6000)
+
+}
+
+startLoading()
+
+</script>
+
+</body>
+</html>
